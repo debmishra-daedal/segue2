@@ -1,0 +1,9 @@
+# Ignore vs code settings and workspace files
+.vscode/
+*.code-workspace
+# Ignore all userdata directories and their contents, even in child directories
+**/userdata/
+**/media/
+#Remove any templates
+**/*.template/
+*.template

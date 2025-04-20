@@ -1,0 +1,13 @@
+ca-certificates
+lsb-release
+sudo
+dpkg
+apt
+systemd
+openssh-client
+ufw
+gdebi-core
+wget
+iproute2
+net-tools
+curl

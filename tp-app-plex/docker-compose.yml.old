@@ -1,0 +1,52 @@
+services:
+  plex:
+    image: "${HOST_SERVER_NAME:-default}-segue2-plexserver:latest"
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        PLEX_VERSION: "${HOST_PLEX_VER:-1.41.6.9685-d301f511a}"
+        PLEX_ARCH: "${HOST_PLEX_ARCH:-arm64}"
+    container_name: "${HOST_PLEX_SERVER:-default}-segue2-plexserver"
+    restart: unless-stopped
+    environment:
+      - TZ=Etc/UTC  # Set your timezone here
+      - PUID=1000   # User ID to run Plex as
+      - PGID=1000   # Group ID to run Plex as
+      - PLEX_DISABLE_TRANSCODING=true  # Disable hardware transcoding if not needed
+    volumes:
+      - "${HOST_USER_DATA:-./userdata}/config:/config"  # For Plex configuration data
+      - "${HOST_USER_DATA:-./userdata}/transcode:/transcode"  # For transcode data
+      - "${HOST_MEDIA_PATH:-./media}:/media"
+      - "${HOST_USER_DATA:-./userdata}:/userdata"  # For Plex configuration data
+      - "${HOST_LOG_PATH:-./logs}:/var/lib/docker/containers"    # For Plex logs
+    ports:
+      - "32400:32400/tcp"  # Web UI
+      - "3005:3005/tcp"    # Plex Companion
+      - "8324:8324/tcp"    # Roku via Plex Companion
+      - "32469:32469/tcp"  # DLNA Server
+      - "1900:1900/udp"    # DLNA Server Discovery
+      - "32410:32410/udp"  # GDM network discovery
+      - "32412:32412/udp"  # GDM network discovery
+      - "32413:32413/udp"  # GDM network discovery
+      - "32414:32414/udp"  # GDM network discovery
+    devices:
+      - /dev/bus/usb:/dev/bus/usb  # Add USB device access if needed
+    privileged: true  # Optional: Run with elevated privileges
+    networks:
+      - plexnet
+    # command: ["/bin/bash", "-c", "exec /usr/lib/plexmediaserver/Plex Media Server"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:32400/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+networks:
+  plexnet:
+    driver: bridge

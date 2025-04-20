@@ -1,0 +1,63 @@
+services:
+  base:
+    image: segue2-ubuntu-22.04:latest
+    container_name: segue2-lin2204
+    build:
+      context: ./infra
+      dockerfile: Dockerfile
+    networks:
+      - segue2
+  plex:
+    depends_on:
+      - base
+    build:
+      context: ./tp-app-plex
+      dockerfile: Dockerfile
+    image: segue2-ubuntu-22.04-plex:latest
+    container_name: segue2-lin2204-plex
+    hostname: "${HOST_SEGUE2_USER:-main}-segue2-plex"
+    networks:
+      - segue2
+    ports:
+      - "32400:32400/tcp"  # Plex Web UI
+      - "3005:3005/tcp"    # Plex Companion
+      - "8324:8324/tcp"    # Roku via Plex Companion
+      - "32469:32469/tcp"  # DLNA Server
+      - "1900:1900/udp"    # DLNA Server Discovery
+      - "32410:32410/udp"  # GDM network discovery
+      - "32412:32412/udp"  # GDM network discovery
+      - "32413:32413/udp"  # GDM network discovery
+      - "32414:32414/udp"  # GDM network discovery
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - PLEX_MEDIA_SERVER_APPLICATION_SUPPORT_DIR=/config
+      - PLEX_MEDIA_SERVER_HOME=/usr/lib/plexmediaserver
+      - LD_LIBRARY_PATH=/usr/lib/plexmediaserver
+      - PLEX_MEDIA_SERVER_USER=plex
+      - PLEX_MEDIA_SERVER_GROUP=plex
+      - PLEX_DOWNLOAD_URL=https://downloads.plex.tv/plex-media-server-new
+      - PLEX_VERSION=${HOST_PLEX_VER:-1.41.6.9685-d301f511a}
+      - PLEX_DISTRIBUTION=${HOST_PLEX_DISTRO:-debian}
+      - PLEX_ARCH=${HOST_PLEX_ARCH:-arm64}
+    volumes:
+      - "${HOST_USER_DATA:-./userdata}/config:/config"
+      - "${HOST_MEDIA_PATH:-./media}/tvshows:/tv"
+      - "${HOST_MEDIA_PATH:-./media}/movies:/movies"
+      - "${HOST_MEDIA_PATH:-./media}/welcome:/welcome"
+    restart: unless-stopped
+    command: ["bash", "-c", "./startscript.sh"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:32400/web"]
+      interval: 1m30s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+
+networks:
+  segue2:
+    name: segue2
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.171.0/24
