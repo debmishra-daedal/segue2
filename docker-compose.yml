@@ -1,5 +1,7 @@
 services:
   base:
+    env_file:
+    - ./var/infra.env
     image: segue2-ubuntu-22.04:latest
     container_name: segue2-lin2204
     build:
@@ -10,9 +12,9 @@ services:
   plex:
     depends_on:
       - base
-    build:
-      context: ./tp-app-plex
-      dockerfile: Dockerfile
+    env_file:
+      - ./var/infra.env
+      - ./var/plex.env
     image: segue2-ubuntu-22.04-plex:latest
     container_name: segue2-lin2204-plex
     hostname: "${HOST_SEGUE2_USER:-main}-segue2-plex"
@@ -56,6 +58,9 @@ services:
   openvpn:
     depends_on:
       - base
+    env_file:
+      - ./var/infra.env
+      - ./var/openvpn.env
     build:
       context: ./tp-app-openvpn
       dockerfile: Dockerfile
@@ -64,16 +69,22 @@ services:
     hostname: "${HOST_SEGUE2_USER:-main}-segue2-openvpn"
     networks:
       - segue2
+    privileged: true
     cap_add:
       - NET_ADMIN
+      - SYS_MODULE
+      - NET_RAW
     devices:
       - /dev/net/tun
     ports:
       - "1194:1194/udp"
     volumes:
-      - ./openvpn/config:/etc/openvpn        # configs and certs
-      - ./openvpn/logs:/var/log/openvpn      # log directory
-    restart: unless-stopped
+      - ./tp-app-openvpn/config/server.conf:/etc/openvpn/server.conf        # configs and certs
+      - ./tp-app-openvpn/logs:/var/log/openvpn      # log directory
+      - ./tp-app-openvpn/userdata:/etc/openvpn/client-configs/files
+    restart: on-failure #no, always, unless-stopped, on-failure
+    command: ["bash", "-c", "/usr/local/bin/docker-entrypoint.sh"]
+    # command: ["bash", "-c", "/usr/local/bin/docker-entrypoint.sh"]
 networks:
   segue2:
     name: segue2
