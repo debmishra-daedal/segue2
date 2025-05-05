@@ -4,6 +4,11 @@
 # Ignore all userdata directories and their contents, even in child directories
 **/userdata/
 **/media/
+# Allow the folder tp-app-openvpn/openvpn/config but ignore all files under it
+!tp-app-openvpn/openvpn/config/
+tp-app-openvpn/openvpn/config/*
+!tp-app-openvpn/openvpn/logs/
+tp-app-openvpn/openvpn/logs/*
 #Remove any templates
 **/*.template/
 *.template

@@ -1,0 +1,10 @@
+git
+htop
+lvm2
+curl
+wget
+net-tools
+cloud-init
+avahi-daemon
+exfat-fuse
+iproute2

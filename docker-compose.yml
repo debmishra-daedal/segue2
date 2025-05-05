@@ -53,7 +53,27 @@ services:
       timeout: 30s
       retries: 5
       start_period: 30s
-
+  openvpn:
+    depends_on:
+      - base
+    build:
+      context: ./tp-app-openvpn
+      dockerfile: Dockerfile
+    image: segue2-ubuntu-22.04-openvpn:latest
+    container_name: segue2-lin2204-openvpn
+    hostname: "${HOST_SEGUE2_USER:-main}-segue2-openvpn"
+    networks:
+      - segue2
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun
+    ports:
+      - "1194:1194/udp"
+    volumes:
+      - ./openvpn/config:/etc/openvpn        # configs and certs
+      - ./openvpn/logs:/var/log/openvpn      # log directory
+    restart: unless-stopped
 networks:
   segue2:
     name: segue2
