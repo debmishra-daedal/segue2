@@ -19,8 +19,8 @@ fi
 #create client profiles
 # Build client certificate (replace 'client1' with your client name)
 ./easyrsa build-client-full $CLIENT_NAME nopass
-# Copy the client certificate and key to the OpenVPN directory
-cp pki/ca.crt pki/issued/$CLIENT_NAME.crt pki/private/$CLIENT_NAME.key ta.key /etc/openvpn/client-configs/files
+# Copy the client certificate and key to the OpenVPN directory. For debugging only
+# cp pki/ca.crt pki/issued/$CLIENT_NAME.crt pki/private/$CLIENT_NAME.key ta.key /etc/openvpn/client-configs/files
 # Create the client configuration file from the client file script
 echo "Creating client configuration file..."
 /usr/local/bin/client-file-script.sh
@@ -35,7 +35,9 @@ echo "Setting up NAT (iptables)..."
 if ! iptables -t nat -A POSTROUTING -s 192.168.171.0/24 -o eth0 -j MASQUERADE; then
     echo "Warning: Failed to set up iptables rules. Continuing anyway..."
 fi
-
+# Create OpenVPN server configuration file
+/usr/local/bin/create-config-file.sh
 # Start OpenVPN
+echo "Starting OpenVPN server..."
 chmod 644 /etc/openvpn/server.conf
 exec openvpn --config /etc/openvpn/server.conf

@@ -18,6 +18,7 @@ RUN echo $PATH
 WORKDIR /etc/openvpn
 COPY docker-entrypoint.sh /usr/local/bin
 COPY client-file-script.sh /usr/local/bin
+COPY create-config-file.sh /usr/local/bin
 #Copy all files and folders in current source directory to the app folder
 # Check contains of /usr/local/bin
 RUN echo "Checking if entrypoint.sh is in /usr/local/bin"
@@ -25,3 +26,4 @@ RUN cd /usr/local/bin
 RUN pwd
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/client-file-script.sh
+RUN chmod +x /usr/local/bin/create-config-file.sh
