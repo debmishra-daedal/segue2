@@ -17,6 +17,9 @@ services:
       - ./var/plex.env
     image: segue2-ubuntu-22.04-plex:latest
     container_name: segue2-lin2204-plex
+    build:
+      context: ./tp-app-plex
+      dockerfile: Dockerfile
     hostname: "${HOST_SEGUE2_USER:-main}-segue2-plex"
     networks:
       - segue2
@@ -98,6 +101,7 @@ services:
       dockerfile: Dockerfile
     image: segue2-ubuntu-22.04-samba:latest
     container_name: segue2-lin2204-samba
+    hostname: "${HOST_SEGUE2_USER:-main}-segue2-samba"
     env_file:
       - ./var/samba.env
     networks:
