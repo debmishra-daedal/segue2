@@ -84,7 +84,41 @@ services:
       - ./tp-app-openvpn/userdata:/etc/openvpn/client-configs/files
     restart: on-failure #no, always, unless-stopped, on-failure
     command: ["bash", "-c", "/usr/local/bin/docker-entrypoint.sh"]
-    # command: ["bash", "-c", "/usr/local/bin/docker-entrypoint.sh"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:1194"]
+      interval: 1m30s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+  samba:
+    depends_on:
+      - base
+    build:
+      context: ./tp-app-samba    # adjust this if your Dockerfile is elsewhere
+      dockerfile: Dockerfile
+    image: segue2-ubuntu-22.04-samba:latest
+    container_name: segue2-lin2204-samba
+    env_file:
+      - ./var/samba.env
+    networks:
+      - segue2
+    ports:
+      - "137:137/udp"
+      - "138:138/udp"
+      - "139:139"
+      - "445:445"
+    volumes:
+      - ${PUBLIC_PATH:-./tp-app-samba/public}:/samba/public
+      - ${PRIVATE_PATH:-./tp-app-samba/private}:/samba/private
+      # - ./tp-app-samba/smb.conf.template:/etc/samba/smb.conf.template (not needed)
+    restart: unless-stopped
+    entrypoint: ["/entrypoint.sh"]
+    healthcheck:
+      test: ["CMD", "smbclient", "-L", "localhost"]
+      interval: 1m30s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
 networks:
   segue2:
     name: segue2
