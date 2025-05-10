@@ -10,6 +10,8 @@ for file in *welcome.mp4; do
 done
 shopt -u nullglob
 #kill plex media server
+echo "Killing Plex Media Server" if already running
 pkill -f "Plex Media Server"
 # This script is used to start the Plex Media Server in a Docker container.
+echo "Starting Plex Media Server in Docker container"
 exec /usr/lib/plexmediaserver/"Plex Media Server"
