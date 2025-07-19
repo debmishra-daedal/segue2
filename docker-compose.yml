@@ -49,7 +49,7 @@ services:
       - "${HOST_USER_DATA:-./userdata}/config:/config"
       - "${HOST_MEDIA_PATH:-./media}/tvshows:/tv"
       - "${HOST_MEDIA_PATH:-./media}/movies:/movies"
-      - "${HOST_MEDIA_PATH:-./media}/welcome:/welcome"
+      - "${HOST_OTHER_PATH:-./media/welcome}:/others"
     restart: unless-stopped
     command: ["bash", "-c", "./startscript.sh"]
     healthcheck:
