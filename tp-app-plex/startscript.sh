@@ -29,4 +29,5 @@ export LD_LIBRARY_PATH="${PLEX_MEDIA_SERVER_HOME}"
 # Change to Plex directory and start as plex user
 source ./diagnose.sh
 cd "${PLEX_MEDIA_SERVER_HOME}"
+echo "Running Plex Media Server as user 'plex'..."
 exec su -s /bin/bash plex -c "\"${PLEX_MEDIA_SERVER_HOME}/Plex Media Server\""
