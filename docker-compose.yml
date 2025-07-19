@@ -45,11 +45,14 @@ services:
       - PLEX_VERSION=${HOST_PLEX_VER:-1.41.6.9685-d301f511a}
       - PLEX_DISTRIBUTION=${HOST_PLEX_DISTRO:-debian}
       - PLEX_ARCH=${HOST_PLEX_ARCH:-arm64}
+      - PLEX_CLAIM=${HOST_PLEX_CLAIM:-}
     volumes:
       - "${HOST_USER_DATA:-./userdata}/config:/config"
       - "${HOST_MEDIA_PATH:-./media}/tvshows:/tv"
       - "${HOST_MEDIA_PATH:-./media}/movies:/movies"
       - "${HOST_OTHER_PATH:-./media/welcome}:/others"
+    devices:
+      - /dev/dri:/dev/dri  # For hardware transcoding (if available)
     restart: unless-stopped
     command: ["bash", "-c", "./startscript.sh"]
     healthcheck:
