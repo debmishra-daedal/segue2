@@ -14,5 +14,5 @@ tp-app-openvpn/logs/*
 *.template
 !*.conf.template
 # Ignore all environment files including child directories, but not .env.template
-**/*.env
+# **/*.env
 !**/*.env.template
