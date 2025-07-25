@@ -16,3 +16,6 @@ tp-app-openvpn/logs/*
 # Ignore all environment files including child directories, but not .env.template
 # **/*.env
 !**/*.env.template
+# Ignore any folder or file created under the folder appdata
+appdata/*
+!appdata/.gitkeep
