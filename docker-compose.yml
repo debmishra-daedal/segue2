@@ -3,7 +3,7 @@ services:
     build:
       context: ./pgdb
       dockerfile: Dockerfile
-    image: segue2-postgresql16:latest
+    image: "${HOST_SEGUE2_USER:-main}-segue2-pgsql16"
     container_name: segue2-pgsql16
     restart: unless-stopped
     env_file:
@@ -27,8 +27,6 @@ services:
       retries: 5
       start_period: 10s
   plex:
-    depends_on:
-      - pgdb
     build:
       context: ./tp-app-plex
       dockerfile: Dockerfile
@@ -39,19 +37,22 @@ services:
     networks:
       - segue2
     hostname: "${HOST_SEGUE2_USER:-main}-segue2-plex"
+    env_file:
+      - ./var/plex.env
     environment:
       - PLEX_CLAIM=${PLEX_CLAIM:-""}
       - PLEX_UID=1000
       - PLEX_GID=1000
       - TZ=Europe/Amsterdam
-      - ADVERTISE_IP=${HOST_PLEX_IP}:32400/  # Replace with your server IP
+      - HOST_SEGUE2_USER=${HOST_SEGUE2_USER:-main}
     volumes:
-      - ${HOST_USER_DATA:-./plex}/config:/config
-      - ${HOST_USER_DATA:-./plex}/transcode:/transcode
-      - ${HOST_MEDIA_PATH:-./media}:/media:ro  # Replace with your media directory
+      - ${HOST_USER_DATA:-./appdata/plex}/config:/config
+      - ${HOST_USER_DATA:-./appdata/plex}/transcode:/transcode
+      - ${HOST_MEDIA_PATH:-./appdata/plex/media}:/media:ro  # Replace with your media directory
       - /dev/shm:/dev/shm  # For transcoding performance
-    devices:
-      - /dev/dri:/dev/dri  # For hardware transcoding (if available)
+    # Uncomment the devices section below if you have hardware transcoding available
+    # devices:
+    #   - /dev/dri:/dev/dri  # For hardware transcoding (if available)
     ports:
       - "32400:32400/tcp"
       - "3005:3005/tcp"

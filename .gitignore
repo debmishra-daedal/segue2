@@ -1,6 +1,9 @@
-# Ignore vs code settings and workspace files
+# Ignore vs code/cursor settings and workspace files
 .vscode/
 *.code-workspace
+settings.json
+.cursorrules
+.cursorignore
 # Ignore all userdata directories and their contents, even in child directories
 **/userdata/
 **/media/
@@ -14,7 +17,7 @@ tp-app-openvpn/logs/*
 *.template
 !*.conf.template
 # Ignore all environment files including child directories, but not .env.template
-# **/*.env
+**/*.env
 !**/*.env.template
 # Ignore any folder or file created under the folder appdata
 appdata/*
