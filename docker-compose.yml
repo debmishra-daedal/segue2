@@ -1,4 +1,5 @@
 services:
+  # PostgreSQL database
   pgdb:
     build:
       context: ./pgdb
@@ -26,6 +27,30 @@ services:
       timeout: 10s
       retries: 5
       start_period: 10s
+  # Flyway database migrations
+  flyway:
+    image: flyway/flyway:11-alpine
+    container_name: segue2-flyway
+    depends_on:
+      pgdb:
+        condition: service_healthy
+    networks:
+      - segue2
+    env_file:
+      - ./var/pgdb.env
+    environment:
+      - FLYWAY_URL=jdbc:postgresql://pgdb:5432/${POSTGRES_DB:-postgres}
+      - FLYWAY_USER=${POSTGRES_USER:-postgres}
+      - FLYWAY_PASSWORD=${POSTGRES_PASSWORD}
+      - FLYWAY_SCHEMAS=dbo
+      - FLYWAY_BASELINE_ON_MIGRATE=true
+      - FLYWAY_VALIDATE_ON_MIGRATE=true
+      - FLYWAY_CLEAN_DISABLED=true
+    volumes:
+      - ./pgdb/migrations:/flyway/sql/migrations
+    command: migrate
+    restart: "no"
+  # Plex media server
   plex:
     build:
       context: ./tp-app-plex
@@ -48,8 +73,8 @@ services:
     volumes:
       - ${HOST_USER_DATA:-./appdata/plex}/config:/config
       - ${HOST_USER_DATA:-./appdata/plex}/transcode:/transcode
-      - ${HOST_MEDIA_PATH:-./appdata/plex/media}:/media:ro  # Replace with your media directory
-      - /dev/shm:/dev/shm  # For transcoding performance
+      - ${HOST_MEDIA_PATH:-./appdata/plex/media}:/media:ro # Replace with your media directory
+      - /dev/shm:/dev/shm # For transcoding performance
     # Uncomment the devices section below if you have hardware transcoding available
     # devices:
     #   - /dev/dri:/dev/dri  # For hardware transcoding (if available)
@@ -66,13 +91,14 @@ services:
     # The Plex Media Server starts automatically - it's the default CMD in the base image
     # If you need to override, uncomment the next line:
     # command: ["/init"]
-# Optional: Create an entry PLEX_CLAIM=claim-xxxxxxxxxxxxxxxxx as variable
+    # Optional: Create an entry PLEX_CLAIM=claim-xxxxxxxxxxxxxxxxx as variable
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:32400/web"]
       interval: 1m30s
       timeout: 30s
       retries: 5
       start_period: 30s
+# Network
 networks:
   segue2:
     name: segue2

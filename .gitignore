@@ -1,6 +1,6 @@
 # Ignore vs code/cursor settings and workspace files
 .vscode/
-*.code-workspace
+# *.code-workspace
 settings.json
 .cursorrules
 .cursorignore
