@@ -1,132 +1,108 @@
 services:
-  base:
-    env_file:
-    - ./var/infra.env
-    image: segue2-ubuntu-22.04:latest
-    container_name: segue2-lin2204
+  # PostgreSQL database
+  pgdb:
     build:
-      context: ./infra
+      context: ./pgdb
       dockerfile: Dockerfile
+    image: "${HOST_SEGUE2_USER:-main}-segue2-pgsql16"
+    container_name: segue2-pgsql16
+    restart: unless-stopped
+    env_file:
+      - ./var/pgdb.env
     networks:
       - segue2
-  plex:
+    environment:
+      - PGDATA=/var/lib/postgresql/data
+      - POSTGRES_INITDB_ARGS=--auth-host=md5 --auth-local=md5
+      - POSTGRES_HOST_AUTH_METHOD=md5
+    volumes:
+      - ${HOST_POSTGRES_DATA:-./appdata/pgdb/data}:/var/lib/postgresql/data
+      - ./pgdb/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./pgdb/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+  # Flyway database migrations
+  flyway:
+    image: flyway/flyway:11-alpine
+    container_name: segue2-flyway
     depends_on:
-      - base
+      pgdb:
+        condition: service_healthy
+    networks:
+      - segue2
     env_file:
-      - ./var/infra.env
-      - ./var/plex.env
-    image: segue2-ubuntu-22.04-plex:latest
-    container_name: segue2-lin2204-plex
+      - ./var/pgdb.env
+    environment:
+      - FLYWAY_URL=jdbc:postgresql://pgdb:5432/${POSTGRES_DB:-postgres}
+      - FLYWAY_USER=${POSTGRES_USER:-postgres}
+      - FLYWAY_PASSWORD=${POSTGRES_PASSWORD}
+      - FLYWAY_SCHEMAS=dbo
+      - FLYWAY_BASELINE_ON_MIGRATE=true
+      - FLYWAY_VALIDATE_ON_MIGRATE=true
+      - FLYWAY_CLEAN_DISABLED=true
+    volumes:
+      - ./pgdb/migrations:/flyway/sql/migrations
+    command: migrate
+    restart: "no"
+  # Plex media server
+  plex:
     build:
       context: ./tp-app-plex
       dockerfile: Dockerfile
-    hostname: "${HOST_SEGUE2_USER:-main}-segue2-plex"
+    # Alternative: use the official image directly
+    # image: plexinc/pms-docker:latest
+    container_name: segue2-plex
+    restart: unless-stopped
     networks:
       - segue2
-    ports:
-      - "${PLEX_PORT:-32400}:32400/tcp"  # Plex Web UI
-      - "${PLEX_COMPANION:-3005}:3005/tcp"    # Plex Companion
-      - "${PLEX_ROKU:-8324}:8324/tcp"    # Roku via Plex Companion
-      - "${PLEX_DLNA:-32469}:32469/tcp"  # DLNA Server
-      - "${PLEX_DLNA_SRVR:-1900}:1900/udp"    # DLNA Server Discovery
-      - "${PLEX_GDM_1:-32410}:32410/udp"  # GDM network discovery
-      - "${PLEX_GDM_2:-32412}:32412/udp"  # GDM network discovery
-      - "${PLEX_GDM_3:-32413}:32413/udp"  # GDM network discovery
-      - "${PLEX_GDM_4:-32414}:32414/udp"  # GDM network discovery
+    hostname: "${HOST_SEGUE2_USER:-main}-segue2-plex"
+    env_file:
+      - ./var/plex.env
     environment:
-      - PUID=1000
-      - PGID=1000
-      - PLEX_MEDIA_SERVER_APPLICATION_SUPPORT_DIR=/config
-      - PLEX_MEDIA_SERVER_HOME=/usr/lib/plexmediaserver
-      - LD_LIBRARY_PATH=/usr/lib/plexmediaserver
-      - PLEX_MEDIA_SERVER_USER=plex
-      - PLEX_MEDIA_SERVER_GROUP=plex
-      - PLEX_DOWNLOAD_URL=https://downloads.plex.tv/plex-media-server-new
-      - PLEX_VERSION=${HOST_PLEX_VER:-1.41.6.9685-d301f511a}
-      - PLEX_DISTRIBUTION=${HOST_PLEX_DISTRO:-debian}
-      - PLEX_ARCH=${HOST_PLEX_ARCH:-arm64}
+      - PLEX_CLAIM=${PLEX_CLAIM:-""}
+      - PLEX_UID=1000
+      - PLEX_GID=1000
+      - TZ=Europe/Amsterdam
+      - HOST_SEGUE2_USER=${HOST_SEGUE2_USER:-main}
     volumes:
-      - "${HOST_USER_DATA:-./userdata}/config:/config"
-      - "${HOST_MEDIA_PATH:-./media}/tvshows:/tv"
-      - "${HOST_MEDIA_PATH:-./media}/movies:/movies"
-      - "${HOST_OTHER_PATH:-./media/welcome}:/others"
-    restart: unless-stopped
-    command: ["bash", "-c", "./startscript.sh"]
+      - ${HOST_USER_DATA:-./appdata/plex}/config:/config
+      - ${HOST_USER_DATA:-./appdata/plex}/transcode:/transcode
+      - ${HOST_MEDIA_PATH:-./appdata/plex/media}:/media:ro # Replace with your media directory
+      - /dev/shm:/dev/shm # For transcoding performance
+    # Uncomment the devices section below if you have hardware transcoding available
+    # devices:
+    #   - /dev/dri:/dev/dri  # For hardware transcoding (if available)
+    ports:
+      - "32400:32400/tcp"
+      - "3005:3005/tcp"
+      - "8324:8324/tcp"
+      - "32469:32469/tcp"
+      - "1900:1900/udp"
+      - "32410:32410/udp"
+      - "32412:32412/udp"
+      - "32413:32413/udp"
+      - "32414:32414/udp"
+    # The Plex Media Server starts automatically - it's the default CMD in the base image
+    # If you need to override, uncomment the next line:
+    # command: ["/init"]
+    # Optional: Create an entry PLEX_CLAIM=claim-xxxxxxxxxxxxxxxxx as variable
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:32400/web"]
       interval: 1m30s
       timeout: 30s
       retries: 5
       start_period: 30s
-  openvpn:
-    depends_on:
-      - base
-    env_file:
-      - ./var/infra.env
-      - ./var/openvpn.env
-    build:
-      context: ./tp-app-openvpn
-      dockerfile: Dockerfile
-    image: segue2-ubuntu-22.04-openvpn:latest
-    container_name: segue2-lin2204-openvpn
-    hostname: "${HOST_SEGUE2_USER:-main}-segue2-openvpn"
-    networks:
-      - segue2
-    privileged: true
-    cap_add:
-      - NET_ADMIN
-      - SYS_MODULE
-      - NET_RAW
-    devices:
-      - /dev/net/tun
-    ports:
-      - "1194:1194/udp"
-    volumes:
-      - ./tp-app-openvpn/config/server.conf:/etc/openvpn/server.conf        # configs and certs
-      - ./tp-app-openvpn/logs:/var/log/openvpn      # log directory
-      - ./tp-app-openvpn/userdata:/etc/openvpn/client-configs/files
-    restart: on-failure #no, always, unless-stopped, on-failure
-    command: ["bash", "-c", "/usr/local/bin/docker-entrypoint.sh"]
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:1194"]
-      interval: 1m30s
-      timeout: 30s
-      retries: 5
-      start_period: 30s
-  samba:
-    depends_on:
-      - base
-    build:
-      context: ./tp-app-samba    # adjust this if your Dockerfile is elsewhere
-      dockerfile: Dockerfile
-    image: segue2-ubuntu-22.04-samba:latest
-    container_name: segue2-lin2204-samba
-    hostname: "${HOST_SEGUE2_USER:-main}-segue2-samba"
-    env_file:
-      - ./var/samba.env
-    networks:
-      - segue2
-    ports:
-      - "137:137/udp"
-      - "138:138/udp"
-      - "139:139"
-      - "445:445"
-    volumes:
-      - ${PUBLIC_PATH:-./tp-app-samba/public}:/samba/public
-      - ${PRIVATE_PATH:-./tp-app-samba/private}:/samba/private
-      # - ./tp-app-samba/smb.conf.template:/etc/samba/smb.conf.template (not needed)
-    restart: unless-stopped
-    entrypoint: ["/entrypoint.sh"]
-    healthcheck:
-      test: ["CMD", "smbclient", "-L", "localhost"]
-      interval: 1m30s
-      timeout: 30s
-      retries: 5
-      start_period: 30s
+# Network
 networks:
   segue2:
     name: segue2
     driver: bridge
     ipam:
       config:
-        - subnet: 192.168.171.0/24
+        - subnet: ${SEGUE2_NETWORK:-192.168.171.0/24}

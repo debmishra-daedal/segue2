@@ -1,0 +1,22 @@
+{
+  "folders": [
+    {
+      "path": "."
+    }
+  ],
+  "settings": {
+    "sqltools.connections": [
+      {
+        "previewLimit": 50,
+        "server": "127.0.0.1",
+        "port": 35432,
+        "driver": "PostgreSQL",
+        "name": "segue2-local",
+        "group": "segue2",
+        "database": "segue2",
+        "username": "segue2admin",
+        "password": "segue2password"
+      }
+    ]
+  }
+}
